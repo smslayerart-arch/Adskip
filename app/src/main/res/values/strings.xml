@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">광고 스킵</string>
+    <string name="accessibility_description">게임 광고를 자동으로 건너뜁니다</string>
+    <string name="notification_channel_name">광고 스킵 서비스</string>
+    <string name="notification_title">광고 스킵</string>
+    <string name="notification_text_on">✅ ON — 광고 자동 스킵 중</string>
+    <string name="notification_text_off">⛔ OFF — 비활성화됨</string>
+    <string name="action_turn_on">켜기</string>
+    <string name="action_turn_off">끄기</string>
+</resources>

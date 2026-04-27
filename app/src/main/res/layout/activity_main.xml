@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="center_horizontal">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🎮 광고 스킵"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:layout_marginTop="40dp" />
+
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="접근성 권한 확인 중..."
+        android:textSize="16sp"
+        android:layout_marginTop="24dp"
+        android:gravity="center" />
+
+    <Button
+        android:id="@+id/btnOpenAccessibility"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="접근성 설정 열기"
+        android:layout_marginTop="24dp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#DDDDDD"
+        android:layout_marginTop="32dp"
+        android:layout_marginBottom="32dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="사용 방법"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="1. 접근성 서비스를 켜주세요\n2. 알림창의 ON/OFF 버튼으로 제어\n3. 게임 실행 후 광고 시작되면 자동 스킵\n\n모든 게임에서 작동합니다."
+        android:textSize="15sp"
+        android:layout_marginTop="12dp"
+        android:lineSpacingMultiplier="1.5" />
+
+</LinearLayout>
