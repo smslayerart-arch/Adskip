@@ -2,6 +2,7 @@ package com.adskip
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.accessibilityservice.GestureDescription
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -10,10 +11,13 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Path
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.util.DisplayMetrics
 import android.view.KeyEvent
+import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
@@ -29,9 +33,8 @@ class AdSkipService : AccessibilityService() {
 
         private val SKIP_KEYWORDS = setOf(
             "skip", "skip ad", "skip ads", "close", "close ad",
-            "dismiss", "done", "continue", "watch later",
-            "건너뛰기", "광고 건너뛰기", "광고건너뛰기",
-            "닫기", "광고 닫기", "광고닫기",
+            "dismiss", "done", "continue",
+            "건너뛰기", "광고 건너뛰기", "닫기", "광고 닫기",
             "확인", "계속하기", "계속",
             "x", "✕", "✗", "×", "⨉"
         )
@@ -41,6 +44,10 @@ class AdSkipService : AccessibilityService() {
     private val handler = Handler(Looper.getMainLooper())
     private var scanRunnable: Runnable? = null
     private lateinit var notificationManager: NotificationManager
+
+    private var screenWidth = 1440
+    private var screenHeight = 3088
+    private var cornerIndex = 0
 
     private var volumeDownPressCount = 0
     private var lastVolumeDownTime = 0L
@@ -67,6 +74,19 @@ class AdSkipService : AccessibilityService() {
         }
         serviceInfo = info
 
+        val wm = getSystemService(WINDOW_SERVICE) as WindowManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val bounds = wm.currentWindowMetrics.bounds
+            screenWidth = bounds.width()
+            screenHeight = bounds.height()
+        } else {
+            val metrics = DisplayMetrics()
+            @Suppress("DEPRECATION")
+            wm.defaultDisplay.getRealMetrics(metrics)
+            screenWidth = metrics.widthPixels
+            screenHeight = metrics.heightPixels
+        }
+
         notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         createNotificationChannel()
 
@@ -82,7 +102,7 @@ class AdSkipService : AccessibilityService() {
         }
 
         updateNotification()
-        showToast("광고 스킵 서비스 시작\n알림창에서 ON/OFF 가능")
+        showToast("광고 스킵 서비스 시작")
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
@@ -143,10 +163,64 @@ class AdSkipService : AccessibilityService() {
     }
 
     private fun trySkipAd() {
-        val root = rootInActiveWindow ?: return
-        try {
-            traverseTree(root)
-        } catch (_: Exception) {}
+        val root = rootInActiveWindow
+        if (root != null) {
+            try {
+                if (traverseTree(root)) return
+            } catch (_: Exception) {}
+        }
+        tapNextCorner()
+    }
+
+    private fun tapNextCorner() {
+        val corners = listOf(
+            listOf(
+                Pair(screenWidth * 0.98f, screenHeight * 0.025f),
+                Pair(screenWidth * 0.94f, screenHeight * 0.025f),
+                Pair(screenWidth * 0.98f, screenHeight * 0.05f),
+                Pair(screenWidth * 0.94f, screenHeight * 0.05f),
+                Pair(screenWidth * 0.90f, screenHeight * 0.04f)
+            ),
+            listOf(
+                Pair(screenWidth * 0.02f, screenHeight * 0.025f),
+                Pair(screenWidth * 0.06f, screenHeight * 0.025f),
+                Pair(screenWidth * 0.02f, screenHeight * 0.05f),
+                Pair(screenWidth * 0.06f, screenHeight * 0.05f),
+                Pair(screenWidth * 0.10f, screenHeight * 0.04f)
+            ),
+            listOf(
+                Pair(screenWidth * 0.98f, screenHeight * 0.97f),
+                Pair(screenWidth * 0.94f, screenHeight * 0.97f),
+                Pair(screenWidth * 0.98f, screenHeight * 0.93f),
+                Pair(screenWidth * 0.94f, screenHeight * 0.93f),
+                Pair(screenWidth * 0.90f, screenHeight * 0.95f)
+            ),
+            listOf(
+                Pair(screenWidth * 0.02f, screenHeight * 0.97f),
+                Pair(screenWidth * 0.06f, screenHeight * 0.97f),
+                Pair(screenWidth * 0.02f, screenHeight * 0.93f),
+                Pair(screenWidth * 0.06f, screenHeight * 0.93f),
+                Pair(screenWidth * 0.10f, screenHeight * 0.95f)
+            )
+        )
+
+        val group = corners[cornerIndex % corners.size]
+        cornerIndex++
+
+        group.forEachIndexed { i, (x, y) ->
+            handler.postDelayed({
+                if (isActive) performTap(x, y)
+            }, (i * 40).toLong())
+        }
+    }
+
+    private fun performTap(x: Float, y: Float) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val path = Path().apply { moveTo(x, y) }
+            val stroke = GestureDescription.StrokeDescription(path, 0, 50)
+            val gesture = GestureDescription.Builder().addStroke(stroke).build()
+            dispatchGesture(gesture, null, null)
+        }
     }
 
     private fun traverseTree(node: AccessibilityNodeInfo): Boolean {
@@ -159,9 +233,7 @@ class AdSkipService : AccessibilityService() {
                 try {
                     if (traverseTree(child)) return true
                 } finally {
-                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                        child.recycle()
-                    }
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) child.recycle()
                 }
             }
         } catch (_: Exception) {}
@@ -180,9 +252,8 @@ class AdSkipService : AccessibilityService() {
     }
 
     private fun performClickOnNode(node: AccessibilityNodeInfo): Boolean {
-        if (node.isClickable && node.isEnabled) {
+        if (node.isClickable && node.isEnabled)
             return node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-        }
         var parent: AccessibilityNodeInfo? = node.parent
         var depth = 0
         while (parent != null && depth < 4) {
